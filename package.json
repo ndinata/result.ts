@@ -1,0 +1,10 @@
+{
+  "name": "results",
+  "version": "1.0.0",
+  "description": "Encoding Rust's \"Result\" type in TypeScript.",
+  "main": "index.ts",
+  "repository": "https://github.com/ndinata/results.git",
+  "author": "Nico Dinata <nicodnt@icloud.com>",
+  "license": "MIT",
+  "private": true
+}
