@@ -1,14 +1,14 @@
 {
-  "name": "results",
+  "name": "ts-result",
+  "private": true,
   "version": "1.0.0",
-  "description": "Encoding Rust's \"Result\" type in TypeScript.",
+  "description": "An implementation of Rust's \"Result\" type in Typescript.",
+  "license": "MIT",
+  "repository": "https://github.com/ndinata/ts-result.git",
+  "author": "Nico Dinata <nicodnt@icloud.com>",
   "scripts": {
     "test": "jest"
   },
-  "repository": "https://github.com/ndinata/results.git",
-  "author": "Nico Dinata <nicodnt@icloud.com>",
-  "license": "MIT",
-  "private": true,
   "devDependencies": {
     "@types/jest": "^29.5.3",
     "jest": "^29.6.1",
