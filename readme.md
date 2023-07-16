@@ -1,157 +1,336 @@
-# Results
+# ts-result
 
-An implementation of Rust's [`Result`](https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html) type in Typescript.
+An implementation of Rust's [`Result`](https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html)
+type in Typescript.
 
-If you're familiar with both Rust and TS, you already know what's up 👍 Feel free to proceed to the [usage](#usage) section. Otherwise,
-you might want to check out the [motivation](#motivation) behind this first.
+If you're familiar with both Rust and TS, you can proceed to the [usage](#usage)
+section. Otherwise, feel free to read up on the [motivating context](#motivation)
+first.
 
 ## Table of contents
 
 - [Usage](#usage)
+- [Documentation](#documentation)
+  - [`Ok`](#ok)
+  - [`Err`](#err)
+  - [Unwrapping](#unwrapping)
+  - [Guards](#guards-isok-and-iserr)
+  - [`map` and `mapErr`](#map-and-maperr)
+  - [`mapOr`](#mapor)
+  - [`match`](#match)
+  - [`and` and `andThen`](#and-and-andthen)
+  - [`or` and `orElse`](#or-and-orelse)
+  - [`wrap` and `asyncWrap`](#wrap-and-asyncwrap)
 - [Motivation](#motivation)
 - [References](#references)
 
 ## Usage
 
-TODO
-
-<details>
-<summary>Implementation of the <code>Result</code> type.</summary>
+You don't have to install anything! Just copy-paste the implementation from
+[`types/result.ts`](./types/result.ts) onto your own codebase and then import the
+definitions. That way you're free to modify/remove anything you don't need.
 
 ```typescript
-/** Similar to Rust's `Result` type: either an `Ok` or `Err` variant. */
-export type Result<T, E> = Ok<T, E> | Err<T, E>;
+import { Err, Ok, Result } from 'where/you/pasted/the/implementation.ts';
+```
 
-/** Collection of methods that all variants of `Result` should implement. */
-interface IResult<T, E> {
-  /** Returns the inner `Ok` value or the provided default. */
-  unwrapOr(t: T): T;
+The code is licensed under the [MIT license](./license). No attribution is needed,
+although it'd be much appreciated 😊
 
-  /** Returns whether this `Result` is an `Ok` variant. */
-  isOk(): this is Ok<T, E>;
+## Documentation
 
-  /** Returns whether this `Result` is an `Err` variant. */
-  isErr(): this is Err<T, E>;
+The main type `Result<T, E>` consists of two "variants": `Ok<T>` representing the
+success case and `Err<E>` representing the error case.
 
-  /**
-   * Applies the supplied function to the inner value if it's an `Ok` variant;
-   * leaves the `Err` value untouched otherwise.
-   */
-  map<U>(f: (t: T) => U): Result<U, E>;
-
-  /**
-   * Applies the supplied function to the inner error if it's an `Err` variant;
-   * leaves the `Ok` value untouched otherwise.
-   */
-  mapErr<U>(f: (e: E) => U): Result<T, U>;
-
-  /** Returns the provided default if `Err`, or applies the function to the inner
-   * `Ok` value and returns the result of that.
-   */
-  mapOr<U>(def: U, f: (t: T) => U): U;
-
-  /**
-   * Calls the supplied `ok` function if it's an `Ok` variant; calls the supplied
-   * `err` function otherwise.
-   */
-  match<U>(ok: (t: T) => U, err: (e: E) => U): U;
-
-  /** Returns `res` if self is an `Err`; otherwise, returns self's `Ok` value. */
-  or<F>(res: Result<T, F>): Result<T, F>;
-}
-
-/** The `Ok` variant of `Result`. */
-export class Ok<T, E> implements IResult<T, E> {
-  private t: T;
-  public constructor(t: T) {
-    this.t = t;
+```typescript
+function divide(a: number, b: number): Result<number, Error> {
+  if (b === 0) {
+    // The error case: `Err` wraps around the error value.
+    return new Err(new Error('cannot divide by 0.'));
   }
 
-  /** Returns the inner `Ok` value. */
-  unwrap(): T {
-    return this.t;
-  }
-
-  unwrapOr(_: T): T {
-    return this.t;
-  }
-
-  isOk(): this is Ok<T, E> {
-    return true;
-  }
-
-  isErr(): this is Err<T, E> {
-    return false;
-  }
-
-  map<U>(f: (t: T) => U): Result<U, E> {
-    return new Ok(f(this.t));
-  }
-
-  mapErr<U>(_: (e: E) => U): Result<T, U> {
-    return new Ok(this.t);
-  }
-
-  mapOr<U>(_: U, f: (t: T) => U): U {
-    return f(this.t);
-  }
-
-  match<U>(ok: (t: T) => U, _: (e: E) => U): U {
-    return ok(this.t);
-  }
-
-  or<F>(_: Result<T, F>): Result<T, F> {
-    return new Ok(this.t);
-  }
-}
-
-/** The `Err` variant of `Result`. */
-export class Err<T, E> implements IResult<T, E> {
-  private e: E;
-  public constructor(e: E) {
-    this.e = e;
-  }
-
-  /** Returns the inner error value. */
-  unwrapErr(): E {
-    return this.e;
-  }
-
-  unwrapOr(t: T): T {
-    return t;
-  }
-
-  isOk(): this is Ok<T, E> {
-    return false;
-  }
-
-  isErr(): this is Err<T, E> {
-    return true;
-  }
-
-  map<U>(_: (t: T) => U): Result<U, E> {
-    return new Err(this.e);
-  }
-
-  mapErr<U>(f: (e: E) => U): Result<T, U> {
-    return new Err(f(this.e));
-  }
-
-  mapOr<U>(def: U, _: (t: T) => U): U {
-    return def;
-  }
-
-  match<U>(_: (t: T) => U, err: (e: E) => U): U {
-    return err(this.e);
-  }
-
-  or<F>(res: Result<T, F>): Result<T, F> {
-    return res;
-  }
+  // The success case: `Ok` wraps around the success value.
+  return new Ok(a / b);
 }
 ```
 
-</details>
+The supported methods with their usage examples are available below. Most of them
+have the same API as their original [Rust counterparts](https://doc.rust-lang.org/std/result/enum.Result.html#implementations).
+
+### `Ok`
+
+Creates the `Ok` variant of a `Result` around some value.
+
+#### Example
+
+```typescript
+import { Ok } from './result';
+
+const someOkResult = new Ok(42);
+```
+
+### `Err`
+
+Creates the `Err` variant of a `Result` around some error value.
+
+#### Example
+
+```typescript
+import { Err } from './result';
+
+const someErrResult = new Err('kaboom');
+```
+
+### Unwrapping
+
+Unwrapping a `Result` comes in several different forms:
+
+- `unwrap()` on an `Ok`,
+- `unwrapErr()` on an `Err`,
+- `unwrapOr()` to provide a fallback value, and
+- `ok()` and `err()` as more general versions of `unwrap()`
+
+These methods are useful if you care about the inner value of a specific variant,
+but can be quite cumbersome if you don't know which variant a `Result` is. In that
+case, you might prefer a more convenient [method](#match) to handle both variants
+simultaneously.
+
+#### Example
+
+```typescript
+import { Err, Ok } from './result';
+
+const someOk = new Ok(42);
+someOk.unwrap(); // 42
+
+const someErr = new Err('kaboom');
+someErr.unwrapErr(); // 'kaboom'
+
+// `unwrapOr()` returns the inner value if called on an `Ok`; otherwise it returns
+// the provided default
+someOk.unwrapOr(-1); // 42
+someErr.unwrapOr('default'); // 'default'
+
+// `ok()` returns the inner value if called on an `Ok`; otherwise it returns `undefined`
+someOk.ok(); // 42
+someErr.ok(); // undefined
+
+// `err()` returns the inner value if called on an `Err`; otherwise it returns `undefined`
+someOk.err(); // undefined
+someErr.err(); // 'kaboom'
+```
+
+### Guards: `isOk` and `isErr`
+
+You can narrow down a `Result` type into either an `Ok` or `Err` by calling guard
+methods: `isOk()` and `isErr()`. These are usually followed by an unwrapping method.
+
+#### Example
+
+```typescript
+import { Err, Ok } from './result';
+
+const someOk = new Ok(42);
+const someErr = new Err('kaboom');
+
+someOk.isOk(); // true
+someErr.isOk(); // false
+
+someOk.isErr(); // false
+someErr.isErr(); // true
+
+if (someOk.isOk()) {
+  // `unwrap` can be called here because TS knows at this point `someOk` is an `Ok`
+  someOk.unwrap();
+}
+
+if (someErr.isErr()) {
+  // the `Err` counterpart to `unwrap` above
+  someErr.unwrapErr();
+}
+```
+
+### `map` and `mapErr`
+
+`map()` applies the supplied function to the inner value if called on an `Ok`;
+returns the `Err` value otherwise. `mapErr()` does the exact opposite (only applies
+the function to an `Err` inner value).
+
+`map()` is useful for composing the results of two functions, while `mapErr()` is
+used to pass through a successful result while handling an error.
+
+#### Example
+
+```typescript
+import { Err, Ok } from './result';
+
+const stringify = (x: number) => x.toString();
+
+const ok = new Ok(2);
+ok.map(stringify); // new Ok('2') (`stringify` gets applied)
+ok.mapErr(stringify); // new Ok(2)
+
+const err = new Err(-1);
+err.map(stringify); // new Err(-1)
+err.mapErr(stringify); // new Err('-1') (`stringify` gets applied)
+```
+
+### `mapOr`
+
+Returns the provided default if called on an `Err`; otherwise applies the function
+to the inner `Ok` value and returns the result of that.
+
+#### Example
+
+```typescript
+import { Err, Ok } from './result';
+
+const ok = new Ok('foo');
+ok.mapOr(42, (v) => v.length); // 3 (since called on an `Ok`, the function is applied)
+
+const err = new Err('bar');
+err.mapOr(42, (v) => v.length); // 42 (since called on an `Err`, the default is used)
+```
+
+### `match`
+
+Checking the variant of a `Result` before unwrapping it and repeating this for the
+error case again and again can be cumbersome. `match()` allows you to "access" the
+inner values of both cases simultaneously via callbacks and will call the right one
+for you (depending on the actual variant of the `Result`).
+
+#### Example
+
+```typescript
+import { fetchAllIds } from '../api';
+import { Err, Ok } from './result';
+
+const fetchResult: Result<string[], Error> = await fetchAllIds();
+
+// By matching on the result, we provide callbacks for both cases at the same time,
+// and depending on which variant the result actually is, the right callback will
+// be fired.
+fetchResult.match(
+  (ids) => {
+    // Do something with the unwrapped `ids` when the result is an `Ok`...
+  },
+  (err) => {
+    // Do something with the unwrapped `err` when the result is an `Err`...
+  },
+);
+```
+
+### `and` and `andThen`
+
+These can be thought of as being somewhat analogous to the `&&` operator but for
+`Result`s, where an `Ok` is kinda like a `true` and an `Err` a `false`. This is
+the opposite of [`or()`](#or-and-orelse).
+
+`and()` returns the provided result on an `Ok`; returns its own `Err` otherwise.
+`andThen()` calls the provided callback on an `Ok`; returns its own `Err` otherwise.
+
+#### Example
+
+```typescript
+import { Err, Ok } from './result';
+
+const ok1 = new Ok(2);
+const ok2 = new Ok(100);
+const err1 = new Err('err');
+const err2 = new Err('ror');
+
+ok1.and(err1); // new Err('err'), because it's kinda like a `true && false`
+ok1.and(ok2); // new Ok(100), kinda like a `true && true`
+err1.and(err2); // new Err('err'), kinda like a `false && false`
+
+const square = (x: number) => new Ok(x * x);
+ok1.andThen(square); // new Ok(4) (`square` gets called)
+err1.andThen(square); // new Err('err')
+```
+
+### `or` and `orElse`
+
+These can be thought of as being somewhat analogous to the `||` operator but for
+`Result`s, where an `Ok` is kinda like a `true` and an `Err` a `false`. This is
+the opposite of [`and()`](#and-and-andthen).
+
+`or()` returns the provided result on an `Err`; returns its own `Ok` otherwise.
+`orElse()` calls the provided callback on an `Err`; returns its own `Ok` otherwise.
+
+#### Example
+
+```typescript
+import { Err, Ok } from './result';
+
+const ok1 = new Ok(2);
+const ok2 = new Ok(100);
+const err1 = new Err('err');
+const err2 = new Err('ror');
+
+ok1.or(err1); // new Ok(2), because it's kinda like a `true || false`
+err1.or(ok1); // new Ok(2), kinda like a `false || true`
+err1.or(err2); // new Err('ror'), kinda like a `false || false`
+
+const square = (x: number) => new Ok(x * x);
+ok1.orElse(square); // new Ok(2)
+new Err(4).orElse(square); // new Ok(16) (`square` gets called)
+```
+
+### `wrap` and `asyncWrap`
+
+Not all functions can be defined to return `Result`s, e.g. those imported from 3rd
+party libs. Those ones will most likely throw, and we need a way to integrate them
+into our non-throwing codebase. We can `wrap()` them!
+
+`wrap()` takes a throwing function, calls it, and returns a `Result` around its
+return value and throwable error. `asyncWrap()` does the same, but for async functions.
+Unlike the other methods though, these two are called like static methods
+(`Result.wrap()`) instead of on some `Result` instance.
+
+#### Example
+
+```typescript
+import { throwingFunc } from 'some-external-pkg';
+import { Result } from './result';
+
+// `result1` is the result of calling `throwingFunc` wrapped inside a `Result`.
+const result1 = Result.wrap(throwingFunc);
+
+function someOtherThrowing(input: number) {
+  if (input < 0) {
+    throw new Error('invalid input');
+  }
+  return input;
+}
+
+// We can optionally pass a custom error to wrap inside the `Result` to replace
+// the function's default throwable error. Here `result2` is a
+// `new Err(new Error('a custom error'))`.
+const result2 = Result.wrap(
+  () => someOtherThrowing(-1),
+  new Error('a custom error'),
+);
+
+// Async functions are supported too with `asyncWrap()` below
+async function asyncThrowing(input: number) {
+  await new Promise((r) => setTimeout(r, 1000));
+  if (input < 0) {
+    throw new Error('err');
+  }
+  return 42;
+}
+
+// `asyncResult` is a Promise-wrapped `Result`
+const asyncResult = Result.asyncWrap(async () => asyncThrowing(1));
+const innerResult = await asyncResult; // new Ok(42)
+
+// This one uses a custom error
+Result.asyncWrap(async () => asyncThrowing(-1), new Error('custom err'));
+```
+
+---
+
+---
 
 ## Motivation
 
@@ -162,9 +341,9 @@ Take a look at the signature of this example TS function.
 function calculate(alpha: number, beta: number): number {}
 ```
 
-It looks simple enough that we can just... call it as part of normal control flow. Right?
-
-Well not quite, because that function actually throws, so it probably needs to be wrapped in a `try-catch` block.
+It looks simple enough that we can just call it as part of normal control flow.
+Looks are deceiving, however, because it actually throws, so you need to remember
+to wrap it in a `try-catch` block.
 
 ```typescript
 function calculate(alpha: number, beta: number): number {
@@ -176,45 +355,38 @@ function calculate(alpha: number, beta: number): number {
 }
 ```
 
-Unlike say [Java](https://docs.oracle.com/javase/tutorial/essential/exceptions/declaring.html) or [Swift](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/errorhandling/#Propagating-Errors-Using-Throwing-Functions), Typescript provides no facilities to mark that a function can throw.
-The only way to provide a visible indicator is by including that info in the function's documentation, which the
-language wouldn't remind you to do if you forgot to. Heck, TS doesn't even check for uncaught errors until runtime.
-You can call `calculate` without catching and your program will compile and run... until the time comes when it _does_
-throw, at which point the program will crash.
+Unlike in [Java](https://docs.oracle.com/javase/tutorial/essential/exceptions/declaring.html)
+or [Swift](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/errorhandling/#Propagating-Errors-Using-Throwing-Functions)
+where throwing functions are visibly marked, the only way to signal that a TS function
+throws is by stating so in its documentation. TS also doesn't check for uncaught
+errors until runtime, making it too easy to forget to handle thrown errors, especially
+if the throwing function is written by someone else.
 
-In short, error handling in TS pretty much boils down to relying on the human programmer to:
-
-1. first know which functions can throw (by reading their docs which may be missing/incomplete), and then
-2. remember to properly catch those thrown errors
-
-Now contrast that with Rust and how it expresses errors:
+Now contrast that with Rust and how it expresses the same error:
 
 ```rust
 fn calculate(alpha: u32, beta: u32) -> Result<u32, InvalidBetaError> {
   // ...
 
   if (alpha > beta) {
+    // Instead of being thrown, the error is now returned!
     return Err(errors::InvalidBetaError);
   }
 }
 ```
 
-Instead of being thrown, the error is returned, giving the function a return type of `Result`. This gives us two benefits:
+The return type being a `Result` gives us two benefits: 1. the error is visible even
+from just the function signature, and 2. more importantly, the error is encoded
+(wrapped) in the return type. The caller of `calculate` can't use the return value
+without "unwrapping" the `Result` first, in the process reminding them to either
+handle the error case or **consciously** decide to propagate/ignore it (no more
+forgetting to handle errors because they are now encoded into the type system).
 
-<table>
-    <tr>
-        <th></th>
-        <th align="left" width="25%">Before (throw error)</th>
-        <th align="left">After (return error)</th>
-    </tr>
-    <tr>
-        <td><b>Error visibility</b></td>
-        <td>Reliant on being documented</td>
-        <td>Visible even from function signature</td>
-    </tr>
-    <tr>
-        <td><b>Error handling</b></td>
-        <td>Bypassable: uncaught errors are not checked until runtime</td>
-        <td>Unmissable: the return type is no longer a simple <code>number</code>, so the caller has to "unwrap" the return value before they can use it (a type error otherwise), prompting the programmer to either handle the error case or <b>purposefully</b> ignore/propagate it</td>
-    </tr>
-</table>
+This repo is an attempt to bring those benefits over to TS!
+
+## References
+
+Other repos that offer similar porting of `Result` to TS:
+
+- https://github.com/supermacro/neverthrow
+- https://github.com/hazae41/result
