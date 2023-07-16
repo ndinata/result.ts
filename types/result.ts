@@ -219,7 +219,7 @@ export namespace Result {
    */
   export function wrap<T, E = Error>(
     f: T extends Promise<any> ? never : (...args: any[]) => T,
-    e?: E
+    e?: E,
   ): Result<T, E> {
     try {
       return new Ok(f());
@@ -252,7 +252,7 @@ export namespace Result {
    */
   export async function asyncWrap<T, E = Error>(
     f: (...args: any[]) => Promise<T>,
-    e?: E
+    e?: E,
   ): AsyncResult<T, E> {
     try {
       return new Ok(await f());
