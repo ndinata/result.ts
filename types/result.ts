@@ -8,7 +8,7 @@ export type AsyncResult<T, E> = Promise<Result<T, E>>;
 export type Option<T> = T | undefined;
 
 /** Collection of methods that all variants of `Result` should implement. */
-interface IResult<T, E> {
+interface ResultInterface<T, E> {
   /** Returns the inner `Ok` value or the provided default. */
   unwrapOr(t: T): T;
 
@@ -61,11 +61,8 @@ interface IResult<T, E> {
 }
 
 /** The `Ok` variant of `Result`. */
-export class Ok<T, E> implements IResult<T, E> {
-  private t: T;
-  public constructor(t: T) {
-    this.t = t;
-  }
+export class Ok<T, E> implements ResultInterface<T, E> {
+  public constructor(private readonly t: T) {}
 
   /** Returns the inner `Ok` value. */
   unwrap(): T {
@@ -126,11 +123,8 @@ export class Ok<T, E> implements IResult<T, E> {
 }
 
 /** The `Err` variant of `Result`. */
-export class Err<T, E> implements IResult<T, E> {
-  private e: E;
-  public constructor(e: E) {
-    this.e = e;
-  }
+export class Err<T, E> implements ResultInterface<T, E> {
+  public constructor(private readonly e: E) {}
 
   /** Returns the inner error value. */
   unwrapErr(): E {
@@ -190,6 +184,7 @@ export class Err<T, E> implements IResult<T, E> {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export namespace Result {
   // Wrapping a throwing function (e.g. from a 3rd party lib) into returning a
   // `Result` is a great idea which I encountered in another similar repo:
@@ -224,7 +219,7 @@ export namespace Result {
     try {
       return new Ok(f());
     } catch (err: any) {
-      return new Err(e || err);
+      return new Err(e ?? err);
     }
   }
 
@@ -257,7 +252,7 @@ export namespace Result {
     try {
       return new Ok(await f());
     } catch (err: any) {
-      return new Err(e || err);
+      return new Err(e ?? err);
     }
   }
 }
