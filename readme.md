@@ -1,4 +1,4 @@
-# ts-result
+# result.ts
 
 An implementation of Rust's [`Result`](https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html)
 type in Typescript.
