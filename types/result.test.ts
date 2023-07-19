@@ -134,11 +134,11 @@ test('`wrap` works', () => {
   expect(Result.wrap(unthrowing)).toEqual(new Ok(100));
 
   const throwing = (input: number) => {
-    if (input >= 0) {
-      return input;
+    if (input < 0) {
+      throw new Error('err');
     }
 
-    throw new Error('err');
+    return input;
   };
 
   expect(Result.wrap(() => throwing(1))).toEqual(new Ok(1));
@@ -156,11 +156,11 @@ test('`asyncWrap` works', async () => {
 
   const asyncThrowing = async (input: number) => {
     await sleep();
-    if (input >= 0) {
-      return 42;
+    if (input < 0) {
+      throw new Error('err');
     }
 
-    throw new Error('err');
+    return 42;
   };
 
   expect(await Result.asyncWrap(async () => asyncThrowing(1))).toEqual(

@@ -1,70 +1,224 @@
-/** Similar to Rust's `Result` type: either an `Ok` or `Err` variant. */
+/**
+ * Similar to Rust's `Result` type: either an `Ok` or `Err` variant.
+ *
+ * Used for annotating the types of variables and function return values.
+ *
+ * If you encounter a type error about some `unknown` type when using any of the
+ * `ResultInterface` methods, explicitly annotating the value with the correct
+ * `Result` type should fix it.
+ */
 export type Result<T, E> = Ok<T, E> | Err<T, E>;
 
-/** Alias for a `Result` inside a `Promise`. */
+/**
+ * Alias for a Promise-wrapped `Result`.
+ *
+ * To use the inner `Result`, you can `await` or `.then` it like any other Promise.
+ */
 export type AsyncResult<T, E> = Promise<Result<T, E>>;
 
 /** Alias for `T` | `undefined`. */
 export type Option<T> = T | undefined;
 
-/** Collection of methods that all variants of `Result` should implement. */
-interface ResultInterface<T, E> {
-  /** Returns the inner `Ok` value or the provided default. */
+/**
+ * Interface defining the methods that a `Result` variant should implement.
+ */
+interface ResultI<T, E> {
+  /**
+   * Returns the inner value if called on an `Ok`, otherwise returns `t`.
+   *
+   * ## Example
+   * ```
+   * new Ok(2).unwrapOr(0); // 2
+   * new Err(-1).unwrapOr(0); // 0
+   * ```
+   */
   unwrapOr(t: T): T;
 
-  /** Returns whether this `Result` is an `Ok` variant. */
+  /**
+   * Returns whether this `Result` is an `Ok` variant.
+   *
+   * ## Example
+   * ```
+   * new Ok(2).isOk(); // true
+   * new Err(-1).isOk(); // false
+   * ```
+   */
   isOk(): this is Ok<T, E>;
 
-  /** Returns the inner `Ok` value if is `Ok`; returns `undefined` otherwise. */
+  /**
+   * Returns the inner value if called on an `Ok`, otherwise returns `undefined`.
+   *
+   * ## Example
+   * ```
+   * new Ok(2).ok(); // 2
+   * new Err(-1).ok(); // undefined
+   * ```
+   */
   ok(): Option<T>;
 
-  /** Returns whether this `Result` is an `Err` variant. */
+  /**
+   * Returns whether this `Result` is an `Err` variant.
+   *
+   * ## Example
+   * ```
+   * new Ok(2).isErr(); // false
+   * new Err(-1).isErr(); // true
+   * ```
+   */
   isErr(): this is Err<T, E>;
 
-  /** Returns the inner `Err` value if is `Err`; returns `undefined` otherwise. */
+  /**
+   * Returns the inner value if called on an `Err`, otherwise returns `undefined`.
+   *
+   * ## Example
+   * ```
+   * new Ok(2).err(); // undefined
+   * new Err(-1).err(); // -1
+   * ```
+   */
   err(): Option<E>;
 
   /**
-   * Applies the supplied function to the inner value if it's an `Ok` variant;
-   * leaves the `Err` value untouched otherwise.
+   * Applies `f` to the inner value if called on an `Ok`, otherwise returns the
+   * `Err` value untouched.
+   *
+   * ## Example
+   * ```
+   * const stringify = (x: number) => x.toString();
+   * new Ok(2).map(stringify); // new Ok("2")
+   * new Err(-1).map(stringify); // new Err(-1)
+   * ```
    */
   map<U>(f: (t: T) => U): Result<U, E>;
 
   /**
-   * Applies the supplied function to the inner error if it's an `Err` variant;
-   * leaves the `Ok` value untouched otherwise.
+   * Applies `f` to the inner value if called on an `Err`, otherwise returns the
+   * `Ok` value untouched.
+   *
+   * ## Example
+   * ```
+   * const stringify = (x: number) => x.toString();
+   * new Ok(2).mapErr(stringify); // new Ok(2)
+   * new Err(-1).mapErr(stringify); // new Err("-1")
+   * ```
    */
   mapErr<U>(f: (e: E) => U): Result<T, U>;
 
-  /** Returns the provided default if `Err`, or applies the function to the inner
-   * `Ok` value and returns the result of that.
+  /**
+   * Returns `def` if called on an `Err`, otherwise applies the function `f` to
+   * the inner `Ok` value.
+   *
+   * ## Example
+   * ```
+   * new Ok("foo").mapOr(42, (v) => v.length); // 3
+   * new Err("bar").mapOr(42, (v) => v.length); // 42
+   * ```
    */
   mapOr<U>(def: U, f: (t: T) => U): U;
 
   /**
-   * Calls the supplied `ok` function if it's an `Ok` variant; calls the supplied
-   * `err` function otherwise.
+   * Applies `ok` to the inner value if called on an `Ok`, otherwise applies `err`.
+   *
+   * The provided functions don't have to return anything (can return `void`).
+   *
+   * ## Example
+   * ```
+   * const ok = (x: number) => x;
+   * const err = (_: number) => 0;
+   *
+   * new Ok(2).match(ok, err); // 2
+   * new Err(-1).match(ok, err); // 0
+   *
+   * new Ok(2).match(
+   *   (v) => console.log(`value is ${v}`),
+   *   (error) => console.log(`error is ${error}`)
+   * );
+   * ```
    */
   match<U>(ok: (t: T) => U, err: (e: E) => U): U;
 
-  /** Returns `res` if self is an `Ok`; otherwise, returns self's `Err`. */
+  /**
+   * Returns `res` if called on an `Ok`, otherwise returns self.
+   *
+   * ## Example
+   * ```
+   * new Err(-1).and(new Err(-100)); // new Err(-1)
+   * new Err(-1).and(new Ok(2)); // new Err(-1)
+   * new Ok(2).and(new Err(-1)); // new Err(-1)
+   * new Ok(2).and(new Ok(100)); // new Ok(100)
+   * ```
+   */
   and<U>(res: Result<U, E>): Result<U, E>;
 
-  /** Calls `op` if self is an `Ok`; otherwise, returns self's `Err`. */
+  /**
+   * Applies `op` and returns its result if called on an `Ok`, otherwise returns self.
+   *
+   * This function can be used for control flow based on `Result` values.
+   *
+   * ## Example
+   * ```
+   * const square = (x: number) => new Ok(x * x);
+   * new Ok(2).andThen(square); // new Ok(4)
+   * new Err(-1).andThen(square); // new Err(-1)
+   * ```
+   */
   andThen<U>(op: (t: T) => Result<U, E>): Result<U, E>;
 
-  /** Returns `res` if self is an `Err`; otherwise, returns self's `Ok`. */
+  /**
+   * Returns `res` if called on an `Err`, otherwise returns self.
+   *
+   * ## Example
+   * ```
+   * new Err(-1).or(new Err(-100)); // new Err(-100)
+   * new Err(-1).or(new Ok(2)); // new Ok(2)
+   * new Ok(2).or(new Err(-1)); // new Ok(2)
+   * new Ok(2).or(new Ok(100)); // new Ok(2)
+   * ```
+   */
   or<F>(res: Result<T, F>): Result<T, F>;
 
-  /** Calls `op` if self is an `Err`; otherwise, returns self's `Ok`. */
+  /**
+   * Applies `op` and returns its result if called on an `Err`, otherwise returns self.
+   *
+   * This function can be used for control flow based on `Result` values.
+   *
+   * ## Example
+   * ```
+   * const square = (x: number) => new Ok(x * x);
+   * new Ok(2).orElse(square); // new Ok(2)
+   * new Err(-2).orElse(square); // new Ok(4)
+   * ```
+   */
   orElse<F>(op: (e: E) => Result<T, F>): Result<T, F>;
 }
 
-/** The `Ok` variant of `Result`. */
-export class Ok<T, E> implements ResultInterface<T, E> {
+/**
+ * The `Ok` variant of `Result`.
+ *
+ * ## Example
+ * ```
+ * // Inferred to be of type `Ok<number, unknown>`
+ * const someOk = new Ok(2);
+ *
+ * // Explicit type for clarity
+ * const x: Result<number, Error> = new Ok(1);
+ *
+ * // Alternative style of explicit typing
+ * new Ok<number, Error>(1);
+ * ```
+ */
+export class Ok<T, E> implements ResultI<T, E> {
   public constructor(private readonly t: T) {}
 
-  /** Returns the inner `Ok` value. */
+  /**
+   * Returns the inner success value.
+   *
+   * ## Example
+   * ```
+   * const x = new Ok(2);
+   * x.unwrap(); // 2
+   * ```
+   */
   unwrap(): T {
     return this.t;
   }
@@ -122,11 +276,33 @@ export class Ok<T, E> implements ResultInterface<T, E> {
   }
 }
 
-/** The `Err` variant of `Result`. */
-export class Err<T, E> implements ResultInterface<T, E> {
+/**
+ * The `Err` variant of `Result`.
+ *
+ * ## Example
+ * ```
+ * // Inferred to be of type `Err<unknown, string>`
+ * const someErr = new Err("kaboom");
+ *
+ * // Explicit type for clarity
+ * const x: Result<number, string> = new Err("kaboom");
+ *
+ * // Alternative style of explicit typing
+ * new Err<number, string>("kaboom");
+ * ```
+ */
+export class Err<T, E> implements ResultI<T, E> {
   public constructor(private readonly e: E) {}
 
-  /** Returns the inner error value. */
+  /**
+   * Returns the inner error value.
+   *
+   * ## Example
+   * ```
+   * const x = new Err("kaboom");
+   * x.unwrapErr(); // "kaboom"
+   * ```
+   */
   unwrapErr(): E {
     return this.e;
   }
@@ -184,7 +360,6 @@ export class Err<T, E> implements ResultInterface<T, E> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export namespace Result {
   // Wrapping a throwing function (e.g. from a 3rd party lib) into returning a
   // `Result` is a great idea which I encountered in another similar repo:
@@ -200,16 +375,16 @@ export namespace Result {
    *
    * NOTE: `f` cannot be async (returns a Promise). For that, use `asyncWrap()` instead.
    *
-   * Example:
-   * ```typescript
+   * ## Example
+   * ```
    * const someThrowingFunc = (i: number) => {
-   *   if (i > 0) {
-   *     return 42;
+   *   if (i < 0) {
+   *     throw new Error("err");
    *   }
-   *   throw new Error("err");
+   *   return 42;
    * };
-   * let x = Result.wrap(() => someThrowingFunc(2));
-   * let y = x.unwrapOr(0)); // y == 42
+   * Result.wrap(() => someThrowingFunc(2)).ok(); // 42
+   * Result.wrap(() => someThrowingFunc(-1)).err(); // new Error("err")
    * ```
    */
   export function wrap<T, E = Error>(
@@ -233,16 +408,16 @@ export namespace Result {
    * NOTE: `f` has to be async (returns a Promise). For sync functions, use
    * `wrap()` instead.
    *
-   * Example:
-   * ```typescript
-   * const asyncThrowingFunc = async (i: number) => {
-   *   if (i > 0) {
-   *     return 42;
+   * ## Example
+   * ```
+   * const asyncThrowing = async (i: number) => {
+   *   if (i < 0) {
+   *     throw new Error("err");
    *   }
-   *   throw new Error("err");
+   *   return 42;
    * };
-   * let x = await Result.asyncWrap(() => asyncThrowingFunc(2));
-   * let y = x.unwrapOr(0); // y == 42;
+   * (await Result.asyncWrap(async () => asyncThrowing(2))).ok(); // 42
+   * (await Result.asyncWrap(async () => asyncThrowing(-1))).err(); // new Error("err")
    * ```
    */
   export async function asyncWrap<T, E = Error>(

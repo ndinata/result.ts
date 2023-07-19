@@ -39,6 +39,11 @@ although it'd be much appreciated 😊
 
 ## Documentation
 
+> Note: the documentation on this readme contains mostly high-level usage examples.
+> For a more comprehensive lower-level doc, feel free to read the heavily-commented
+> [implementation](./types/result.ts) instead (because that's the file you're using
+> in your codebase anyways).
+
 The main type `Result<T, E>` consists of two "variants": `Ok<T>` representing the
 success case and `Err<E>` representing the error case.
 
@@ -106,16 +111,16 @@ someOk.unwrap(); // 42
 const someErr = new Err('kaboom');
 someErr.unwrapErr(); // 'kaboom'
 
-// `unwrapOr()` returns the inner value if called on an `Ok`; otherwise it returns
+// `unwrapOr()` returns the inner value if called on an `Ok`, otherwise it returns
 // the provided default
 someOk.unwrapOr(-1); // 42
 someErr.unwrapOr('default'); // 'default'
 
-// `ok()` returns the inner value if called on an `Ok`; otherwise it returns `undefined`
+// `ok()` returns the inner value if called on an `Ok`, otherwise it returns `undefined`
 someOk.ok(); // 42
 someErr.ok(); // undefined
 
-// `err()` returns the inner value if called on an `Err`; otherwise it returns `undefined`
+// `err()` returns the inner value if called on an `Err`, otherwise it returns `undefined`
 someOk.err(); // undefined
 someErr.err(); // 'kaboom'
 ```
@@ -177,7 +182,7 @@ err.mapErr(stringify); // new Err('-1') (`stringify` gets applied)
 
 ### `mapOr`
 
-Returns the provided default if called on an `Err`; otherwise applies the function
+Returns the provided default if called on an `Err`, otherwise applies the function
 to the inner `Ok` value and returns the result of that.
 
 #### Example
